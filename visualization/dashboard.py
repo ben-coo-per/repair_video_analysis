@@ -126,3 +126,16 @@ with tab3:
 st.sidebar.divider()
 st.sidebar.markdown(f"**Total records:** {len(df)}")
 st.sidebar.markdown(f"**Filtered records:** {len(filtered_df)}")
+
+# Bibliography
+unique_videos = df[["video_url", "video_title"]].drop_duplicates().dropna(subset=["video_url"])
+unique_videos = unique_videos.sort_values("video_title")
+
+with st.expander("Sources", expanded=False):
+    sources_md = "  \n".join(
+        f'<span style="font-size: 0.8em; color: #888;">'
+        f'[{i+1}] <a href="{row["video_url"]}" target="_blank">{row["video_title"]}</a>'
+        f'</span>'
+        for i, (_, row) in enumerate(unique_videos.iterrows())
+    )
+    st.markdown(sources_md, unsafe_allow_html=True)
