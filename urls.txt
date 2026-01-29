@@ -1,0 +1,44 @@
+# Example URLs file for power tool repair video analysis
+# Add YouTube URLs below, one per line
+# Lines starting with # are comments
+
+# Example (replace with actual repair video URLs):
+# https://www.youtube.com/watch?v=EXAMPLE_ID
+
+https://youtu.be/lgeFVd7C9Ho?si=8rSC2iBqh0bYz4Du
+https://youtu.be/vXuCIl9B14k?si=PMz8VQKzfeh87Bqz
+https://youtu.be/cpbRAXrCtKk?si=UBb0KNtaEm31-py2
+https://youtu.be/yK8TxCuo42k?si=SX1iFt4jzfzyKbId
+https://youtu.be/S_dXPAdOxUw?si=cIp7t-uuOmWXmRCe
+https://youtu.be/SUnzfkhg_Oo?si=VBNu_Z3CJ1afeixS
+https://youtu.be/UxiV_aHHhzA?si=nqCw8xa28FpGPRk_
+https://youtu.be/hnu3--wLLJQ?si=H9_hy6-3-aMs09AZ
+https://www.youtube.com/watch?v=Lv4r-iubEgk
+https://www.youtube.com/watch?v=yK8TxCuo42k
+https://www.youtube.com/watch?v=VYW43kLl7Vo
+https://www.youtube.com/watch?v=lNowwpGSxOY
+https://www.youtube.com/watch?v=zOM1vclr0po
+https://www.youtube.com/watch?v=ShPTiiGimPM
+https://www.youtube.com/watch?v=CM5k2STYAT4
+https://www.youtube.com/watch?v=i7cWKnfOSJg
+https://www.youtube.com/watch?v=qegamF4YHpc
+https://www.youtube.com/watch?v=wSTNDD7Lp_E
+https://www.youtube.com/watch?v=peaFC9ANv7s
+https://www.youtube.com/watch?v=NorgntBuJFI
+https://www.youtube.com/watch?v=TnEK6yLD_SI
+https://www.youtube.com/watch?v=Nn7HwU6H0e8
+https://www.youtube.com/watch?v=c8VQBH0Q6w8
+https://www.youtube.com/watch?v=H70eLE1jvjg
+https://www.youtube.com/watch?v=BaAqTbzHdX4
+https://www.youtube.com/watch?v=NkgP8jgsATI
+https://www.youtube.com/watch?v=Twucz_AGwc0
+https://www.youtube.com/watch?v=J7vg2JjVyfg
+https://www.youtube.com/watch?v=gHOZ5SsIr5w
+https://www.youtube.com/watch?v=srjHEJxlGHg
+https://www.youtube.com/watch?v=K-2_VWGNwIs
+https://www.youtube.com/watch?v=zTDtNXp6AqU
+https://www.youtube.com/watch?v=t5mWzfKNIis
+https://www.youtube.com/watch?v=yLU_cSNogF8
+https://www.youtube.com/watch?v=Z0Tgcgr_I20
+https://www.youtube.com/watch?v=mlsvm1_dcV4
+https://www.youtube.com/watch?v=29S8VQRfx3w
