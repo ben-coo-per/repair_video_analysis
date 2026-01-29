@@ -84,6 +84,12 @@ def main():
         help="Output JSON file for extracted repairs",
     )
     parser.add_argument(
+        "--append",
+        "-a",
+        action="store_true",
+        help="Append to existing output file instead of overwriting",
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -115,12 +121,22 @@ def main():
         repairs = process_video(url)
         all_repairs.extend(repairs)
 
+    # Load existing data if appending
+    existing_repairs: list[dict] = []
+    if args.append and args.output_file.exists():
+        with open(args.output_file, "r") as f:
+            existing_repairs = json.load(f)
+        print(f"\n\nLoaded {len(existing_repairs)} existing repair(s) from {args.output_file}")
+
+    combined = existing_repairs + all_repairs
+
     # Write output
-    print(f"\n\nTotal repairs extracted: {len(all_repairs)}")
+    print(f"\nNew repairs extracted: {len(all_repairs)}")
+    print(f"Total repairs in file: {len(combined)}")
     print(f"Writing to: {args.output_file}")
 
     with open(args.output_file, "w") as f:
-        json.dump(all_repairs, f, indent=2)
+        json.dump(combined, f, indent=2)
 
     print("Done!")
 
