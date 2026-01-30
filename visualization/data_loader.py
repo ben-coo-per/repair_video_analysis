@@ -62,16 +62,56 @@ def categorize_failure_reasons(df: pd.DataFrame) -> pd.DataFrame:
         if pd.isna(reason):
             return "Unknown"
         reason_lower = reason.lower()
-        if "not economically viable" in reason_lower or "cost" in reason_lower:
+
+        # Check economic keywords first — most common reason
+        econ_keywords = [
+            "not econom", "uneconom", "not cost effective",
+            "cost effective", "not worth", "too expensive",
+            "exceed tool value", "exceed value",
+            "cost more than", "costs more than",
+            "cost nearly", "costs nearly",
+            "costs as much", "cost as much",
+            "cost equals", "costs equal",
+            "making repair", "not viable",
+            "better to replace",
+        ]
+        if any(kw in reason_lower for kw in econ_keywords):
             return "Not Economical"
-        elif "part" in reason_lower and ("not available" in reason_lower or "not in stock" in reason_lower):
-            return "Parts Unavailable"
-        elif "damage" in reason_lower or "burnt" in reason_lower or "melted" in reason_lower:
-            return "Severe Damage"
-        elif "water" in reason_lower or "corrosion" in reason_lower:
+
+        # Water, corrosion, or rust damage
+        if "water" in reason_lower or "corrosion" in reason_lower or "acid" in reason_lower or "rust" in reason_lower:
             return "Water/Corrosion"
-        else:
-            return "Other"
+
+        # Parts unavailable or need ordering
+        parts_keywords = [
+            "not available", "no replacement", "not in stock",
+            "need to be ordered", "needed to be ordered",
+            "no longer available", "obsolete",
+            "could not find", "did not have",
+            "wrong size", "did not fit",
+        ]
+        if any(kw in reason_lower for kw in parts_keywords):
+            return "Parts Unavailable"
+
+        # Severe physical or electrical damage
+        damage_keywords = [
+            "burnt", "burned", "burn damage", "melted", "destroyed",
+            "beyond repair", "shorted out",
+            "completely failed", "severe", "trauma",
+        ]
+        if any(kw in reason_lower for kw in damage_keywords):
+            return "Severe Damage"
+
+        # Electrical / component failure
+        elec_keywords = [
+            "circuit board", "controller", "switch failure",
+            "motor failure", "broken wires", "faulty",
+            "cells", "battery", "board fail",
+        ]
+        if any(kw in reason_lower for kw in elec_keywords):
+            return "Component Failure"
+
+        return "Other"
 
     failed["failure_category"] = failed["failure_reason"].apply(categorize)
     return failed["failure_category"].value_counts().reset_index()

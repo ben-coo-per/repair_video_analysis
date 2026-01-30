@@ -14,6 +14,7 @@ Example:
 import argparse
 import json
 import sys
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -90,6 +91,13 @@ def main():
         help="Append to existing output file instead of overwriting",
     )
     parser.add_argument(
+        "--delay",
+        "-d",
+        type=float,
+        default=5.0,
+        help="Delay in seconds between requests to avoid IP bans (default: 5)",
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -117,6 +125,9 @@ def main():
     all_repairs: list[dict] = []
 
     for i, url in enumerate(urls, 1):
+        if i > 1 and args.delay > 0:
+            print(f"  Waiting {args.delay}s before next request...")
+            time.sleep(args.delay)
         print(f"\n[{i}/{len(urls)}] ", end="")
         repairs = process_video(url)
         all_repairs.extend(repairs)
