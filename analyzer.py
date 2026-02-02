@@ -16,17 +16,41 @@ For EACH distinct repair in the video, extract:
 - tool_type: Type of tool (e.g., circular saw, drill, angle grinder, jigsaw, router, sander, etc.)
 - model: Model number if mentioned (otherwise null)
 - problem: Detailed description of the problem/issue being repaired (be thorough)
-- component: The specific component that failed or needed repair (e.g., motor brushes, switch, armature, bearing, cord, trigger, chuck, etc.)
+- components: A list of the specific components that failed or needed repair. You MUST only use values from this list:
+    - "Motor Brushes"
+    - "Armature"
+    - "Battery"
+    - "Power Cord"
+    - "Controller / Circuit Board"
+    - "Switch"
+    - "Motor"
+    - "Chuck"
+    - "Bearing"
+    - "Tool Holder"
+    - "Gearbox / Gears"
+    - "Housing / Case"
+    - "Anvil"
+    - "Belt / Drive"
+    - "Piston / Hammer Mechanism"
+    - "Spring"
+    - "Nail Gun Mechanism"
+    - "Fan"
+    - "Wiring / Connectors"
+    - "O-Ring / Seal"
+  If a component does not fit any of the above, use the closest match. If nothing is close, use a short descriptive name.
 - successful: true if the repair was successful, false otherwise
 - failure_reason: If unsuccessful, explain why (otherwise null)
 
 IMPORTANT:
-- If multiple repairs are discussed, create a separate entry for each
+- Each JSON object must represent ONE individual physical item (one tool, one battery pack, etc.)
+- If multiple units of the same type are discussed (e.g., "three battery packs"), create a SEPARATE entry for each individual unit with its own specific problem and outcome. Do NOT bundle multiple units into one row.
+- If multiple different tools are discussed, create a separate entry for each
 - Extract as much detail as possible from the transcript
 - If information is not clearly stated, use null
 - Include power tools (corded or cordless electric tools), battery packs, and chargers
 - Battery pack repairs should use tool_type "battery pack" with the appropriate brand
 - Be accurate - only include information actually mentioned in the transcript
+- components must ALWAYS be a JSON array, even if only one component failed (e.g., ["Motor Brushes"])
 
 Respond with a JSON array of repair objects. If no power tool repairs are discussed, return an empty array.
 
@@ -37,7 +61,7 @@ Example response format:
     "tool_type": "circular saw",
     "model": "DWE575",
     "problem": "The saw was making a grinding noise and the blade would not spin up to full speed. Smoke was visible coming from the motor housing during operation.",
-    "component": "motor brushes",
+    "components": ["Motor Brushes", "Armature"],
     "successful": true,
     "failure_reason": null
   }}
@@ -121,7 +145,7 @@ def analyze_transcript(
                 tool_type=repair_dict.get("tool_type"),
                 model=repair_dict.get("model"),
                 problem=repair_dict.get("problem", ""),
-                component=repair_dict.get("component"),
+                components=repair_dict.get("components") or [],
                 successful=repair_dict.get("successful", True),
                 failure_reason=repair_dict.get("failure_reason"),
                 video_url=video_url,

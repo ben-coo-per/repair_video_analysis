@@ -5,26 +5,32 @@ YouTube Power Tool Repair Video Analyzer
 Analyzes YouTube video transcripts to extract structured repair information.
 
 Usage:
-    python main.py <input_urls_file> <output_json_file>
+    python main.py [--delay SECONDS]
 
-Example:
-    python main.py urls.txt output.json
+Reads URLs from urls_to_add.txt, processes each one:
+  1. Fetch transcript & analyze with Claude
+  2. Append results to output.json immediately
+  3. Move the URL from urls_to_add.txt to urls.txt
 """
 
-import argparse
 import json
 import sys
 import time
+import argparse
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 # Load .env file from same directory as script
-load_dotenv(Path(__file__).parent / ".env")
+SCRIPT_DIR = Path(__file__).parent
+load_dotenv(SCRIPT_DIR / ".env")
 
 from transcript import fetch_transcript
 from analyzer import analyze_transcript
-from models import RepairRecord
+
+INPUT_FILE = SCRIPT_DIR / "urls_to_add.txt"
+ARCHIVE_FILE = SCRIPT_DIR / "urls.txt"
+OUTPUT_FILE = SCRIPT_DIR / "output.json"
 
 
 def process_video(url: str) -> list[dict]:
@@ -70,25 +76,46 @@ def process_video(url: str) -> list[dict]:
         return []
 
 
+def load_output() -> list[dict]:
+    """Load existing repairs from output.json, or return empty list."""
+    if OUTPUT_FILE.exists():
+        with open(OUTPUT_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+
+def save_output(data: list[dict]) -> None:
+    """Write repairs list to output.json."""
+    with open(OUTPUT_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def read_urls(path: Path) -> list[str]:
+    """Read non-empty, non-comment lines from a URL file."""
+    if not path.exists():
+        return []
+    lines = path.read_text().strip().split("\n")
+    return [line.strip() for line in lines if line.strip() and not line.strip().startswith("#")]
+
+
+def remove_url_from_input(url: str) -> None:
+    """Remove a URL from urls_to_add.txt, preserving other lines."""
+    if not INPUT_FILE.exists():
+        return
+    lines = INPUT_FILE.read_text().split("\n")
+    remaining = [line for line in lines if line.strip() != url.strip()]
+    INPUT_FILE.write_text("\n".join(remaining))
+
+
+def append_url_to_archive(url: str) -> None:
+    """Append a URL to urls.txt."""
+    with open(ARCHIVE_FILE, "a") as f:
+        f.write(f"{url.strip()}\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Analyze YouTube power tool repair videos"
-    )
-    parser.add_argument(
-        "input_file",
-        type=Path,
-        help="Text file with YouTube URLs (one per line)",
-    )
-    parser.add_argument(
-        "output_file",
-        type=Path,
-        help="Output JSON file for extracted repairs",
-    )
-    parser.add_argument(
-        "--append",
-        "-a",
-        action="store_true",
-        help="Append to existing output file instead of overwriting",
     )
     parser.add_argument(
         "--delay",
@@ -97,59 +124,41 @@ def main():
         default=5.0,
         help="Delay in seconds between requests to avoid IP bans (default: 5)",
     )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Enable verbose output",
-    )
 
     args = parser.parse_args()
 
-    # Validate input file exists
-    if not args.input_file.exists():
-        print(f"Error: Input file not found: {args.input_file}")
-        sys.exit(1)
-
-    # Read URLs from input file
-    urls = args.input_file.read_text().strip().split("\n")
-    urls = [url.strip() for url in urls if url.strip() and not url.strip().startswith("#")]
+    urls = read_urls(INPUT_FILE)
 
     if not urls:
-        print("Error: No URLs found in input file")
-        sys.exit(1)
+        print(f"No URLs found in {INPUT_FILE}")
+        sys.exit(0)
 
     print(f"Found {len(urls)} URL(s) to process\n")
 
-    # Process all videos
-    all_repairs: list[dict] = []
+    total_new = 0
 
     for i, url in enumerate(urls, 1):
         if i > 1 and args.delay > 0:
             print(f"  Waiting {args.delay}s before next request...")
             time.sleep(args.delay)
+
         print(f"\n[{i}/{len(urls)}] ", end="")
         repairs = process_video(url)
-        all_repairs.extend(repairs)
 
-    # Load existing data if appending
-    existing_repairs: list[dict] = []
-    if args.append and args.output_file.exists():
-        with open(args.output_file, "r") as f:
-            existing_repairs = json.load(f)
-        print(f"\n\nLoaded {len(existing_repairs)} existing repair(s) from {args.output_file}")
+        if repairs:
+            # Append to output.json immediately
+            all_repairs = load_output()
+            all_repairs.extend(repairs)
+            save_output(all_repairs)
+            total_new += len(repairs)
+            print(f"  Saved {len(repairs)} repair(s) to {OUTPUT_FILE}")
 
-    combined = existing_repairs + all_repairs
+        # Move URL from urls_to_add.txt -> urls.txt regardless of success
+        remove_url_from_input(url)
+        append_url_to_archive(url)
+        print(f"  Moved URL to {ARCHIVE_FILE}")
 
-    # Write output
-    print(f"\nNew repairs extracted: {len(all_repairs)}")
-    print(f"Total repairs in file: {len(combined)}")
-    print(f"Writing to: {args.output_file}")
-
-    with open(args.output_file, "w") as f:
-        json.dump(combined, f, indent=2)
-
-    print("Done!")
+    print(f"\n\nDone! Added {total_new} new repair(s) to {OUTPUT_FILE}")
 
 
 if __name__ == "__main__":

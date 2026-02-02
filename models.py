@@ -12,7 +12,7 @@ class RepairRecord:
     tool_type: Optional[str]
     model: Optional[str]
     problem: str
-    component: Optional[str]
+    components: list[str]
     successful: bool
     failure_reason: Optional[str]
     video_url: str
@@ -25,7 +25,7 @@ class RepairRecord:
             "tool_type": self.tool_type,
             "model": self.model,
             "problem": self.problem,
-            "component": self.component,
+            "components": self.components,
             "successful": self.successful,
             "failure_reason": self.failure_reason,
             "video_url": self.video_url,

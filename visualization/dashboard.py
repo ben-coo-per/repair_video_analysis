@@ -33,25 +33,33 @@ df = get_data()
 st.sidebar.header("Filters")
 
 # Brand filter
-brands = ["All"] + sorted([b for b in df["brand"].unique() if b is not None])
-selected_brand = st.sidebar.selectbox("Brand", brands)
+brands = sorted([b for b in df["brand"].unique() if b is not None])
+selected_brands = st.sidebar.multiselect("Brand", brands)
 
 # Tool type filter
-tool_types = ["All"] + sorted([t for t in df["tool_type"].unique() if t is not None])
-selected_tool_type = st.sidebar.selectbox("Tool Type", tool_types)
+tool_types = sorted([t for t in df["tool_type"].unique() if t is not None])
+selected_tool_types = st.sidebar.multiselect("Tool Type", tool_types)
+
+# Component filter (explode the lists to get unique values)
+all_components = sorted(set(c for comp_list in df["components"] for c in comp_list if c))
+selected_components = st.sidebar.multiselect("Failing Component", all_components)
 
 # Outcome filter
-outcomes = ["All"] + sorted(df["outcome"].dropna().unique().tolist())
-selected_outcome = st.sidebar.selectbox("Outcome", outcomes)
+outcomes = sorted(df["outcome"].dropna().unique().tolist())
+selected_outcomes = st.sidebar.multiselect("Outcome", outcomes)
 
-# Apply filters
+# Apply filters (empty selection = show all)
 filtered_df = df.copy()
-if selected_brand != "All":
-    filtered_df = filtered_df[filtered_df["brand"] == selected_brand]
-if selected_tool_type != "All":
-    filtered_df = filtered_df[filtered_df["tool_type"] == selected_tool_type]
-if selected_outcome != "All":
-    filtered_df = filtered_df[filtered_df["outcome"] == selected_outcome]
+if selected_brands:
+    filtered_df = filtered_df[filtered_df["brand"].isin(selected_brands)]
+if selected_tool_types:
+    filtered_df = filtered_df[filtered_df["tool_type"].isin(selected_tool_types)]
+if selected_components:
+    filtered_df = filtered_df[filtered_df["components"].apply(
+        lambda cl: any(c in selected_components for c in cl)
+    )]
+if selected_outcomes:
+    filtered_df = filtered_df[filtered_df["outcome"].isin(selected_outcomes)]
 
 # Header
 st.title("Repair Video Analysis Dashboard")

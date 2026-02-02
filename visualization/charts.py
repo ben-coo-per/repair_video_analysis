@@ -44,14 +44,16 @@ def create_brand_bar_chart(df: pd.DataFrame) -> go.Figure:
 
     colors = [BRAND_COLORS.get(brand, "#6B7280") for brand in brand_counts["brand"]]
 
-    fig = go.Figure(go.Bar(
-        x=brand_counts["count"],
-        y=brand_counts["brand"],
-        orientation="h",
-        marker_color=colors,
-        text=brand_counts["count"],
-        textposition="outside",
-    ))
+    fig = go.Figure(
+        go.Bar(
+            x=brand_counts["count"],
+            y=brand_counts["brand"],
+            orientation="h",
+            marker_color=colors,
+            text=brand_counts["count"],
+            textposition="outside",
+        )
+    )
 
     fig.update_layout(
         title="Repairs by Brand",
@@ -72,23 +74,27 @@ def create_success_rate_chart(df: pd.DataFrame) -> go.Figure:
 
     fig = go.Figure()
 
-    fig.add_trace(go.Bar(
-        name="Successful",
-        x=stats["brand"],
-        y=stats["successful_repairs"],
-        marker_color=OUTCOME_COLORS["Successful"],
-        text=stats["successful_repairs"],
-        textposition="auto",
-    ))
+    fig.add_trace(
+        go.Bar(
+            name="Successful",
+            x=stats["brand"],
+            y=stats["successful_repairs"],
+            marker_color=OUTCOME_COLORS["Successful"],
+            text=stats["successful_repairs"],
+            textposition="auto",
+        )
+    )
 
-    fig.add_trace(go.Bar(
-        name="Failed",
-        x=stats["brand"],
-        y=stats["failed_repairs"],
-        marker_color=OUTCOME_COLORS["Failed"],
-        text=stats["failed_repairs"],
-        textposition="auto",
-    ))
+    fig.add_trace(
+        go.Bar(
+            name="Failed",
+            x=stats["brand"],
+            y=stats["failed_repairs"],
+            marker_color=OUTCOME_COLORS["Failed"],
+            text=stats["failed_repairs"],
+            textposition="auto",
+        )
+    )
 
     fig.update_layout(
         title="Success vs Failure by Brand",
@@ -130,26 +136,55 @@ def create_tool_type_chart(df: pd.DataFrame) -> go.Figure:
 
 
 def create_component_bar_chart(df: pd.DataFrame, top_n: int = 10) -> go.Figure:
-    """Create bar chart of top N failing components."""
-    components = compute_component_stats(df).head(top_n)
-    components = components.sort_values("count", ascending=True)
+    """Create stacked bar chart of top N failing components colored by repair outcome."""
+    # Explode the components list so each component gets its own row for counting
+    exploded = df[["components", "outcome"]].explode("components")
+    exploded = exploded[exploded["components"].notna() & (exploded["components"] != "")]
+    exploded = exploded.rename(columns={"components": "component"})
 
-    fig = go.Figure(go.Bar(
-        x=components["count"],
-        y=components["component"],
-        orientation="h",
-        marker_color=DEFAULT_COLORS[0],
-        text=components["count"],
-        textposition="outside",
-    ))
+    # Get top N components by total count
+    top_components = exploded["component"].value_counts().head(top_n).index.tolist()
+    comp_df = exploded[exploded["component"].isin(top_components)]
+
+    # Count successful vs failed per component
+    breakdown = (
+        comp_df.groupby(["component", "outcome"]).size().reset_index(name="count")
+    )
+
+    # Pivot so each outcome is a column, fill missing with 0
+    pivot = breakdown.pivot(
+        index="component", columns="outcome", values="count"
+    ).fillna(0)
+
+    # Sort by total count ascending (for horizontal bar, bottom = highest)
+    pivot["total"] = pivot.sum(axis=1)
+    pivot = pivot.sort_values("total", ascending=True)
+    pivot = pivot.drop(columns="total")
+
+    fig = go.Figure()
+
+    for outcome in ["Successful", "Failed", "Pending"]:
+        if outcome not in pivot.columns:
+            continue
+        fig.add_trace(
+            go.Bar(
+                x=pivot[outcome],
+                y=pivot.index,
+                name=outcome,
+                orientation="h",
+                marker_color=OUTCOME_COLORS.get(outcome, "#6B7280"),
+            )
+        )
 
     fig.update_layout(
         title=f"Top {top_n} Failing Components",
-        xaxis_title="Number of Failures",
+        xaxis_title="Number of Repairs",
         yaxis_title="",
+        barmode="stack",
         template=CHART_TEMPLATE,
         height=400,
         margin=dict(l=200, r=50, t=50, b=50),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
 
     return fig
@@ -160,22 +195,28 @@ def create_outcome_donut(df: pd.DataFrame) -> go.Figure:
     outcome_counts = df["outcome"].value_counts().reset_index()
     outcome_counts.columns = ["outcome", "count"]
 
-    colors = [OUTCOME_COLORS.get(outcome, "#6B7280") for outcome in outcome_counts["outcome"]]
+    colors = [
+        OUTCOME_COLORS.get(outcome, "#6B7280") for outcome in outcome_counts["outcome"]
+    ]
 
-    fig = go.Figure(go.Pie(
-        labels=outcome_counts["outcome"],
-        values=outcome_counts["count"],
-        hole=0.5,
-        marker_colors=colors,
-        textinfo="label+value+percent",
-        textposition="outside",
-    ))
+    fig = go.Figure(
+        go.Pie(
+            labels=outcome_counts["outcome"],
+            values=outcome_counts["count"],
+            hole=0.5,
+            marker_colors=colors,
+            textinfo="label+value+percent",
+            textposition="outside",
+        )
+    )
 
     fig.update_layout(
         title="Repair Outcomes",
         template=CHART_TEMPLATE,
         height=400,
-        annotations=[dict(text="Outcomes", x=0.5, y=0.5, font_size=16, showarrow=False)],
+        annotations=[
+            dict(text="Outcomes", x=0.5, y=0.5, font_size=16, showarrow=False)
+        ],
     )
 
     return fig
@@ -186,13 +227,15 @@ def create_failure_reason_pie(df: pd.DataFrame) -> go.Figure:
     failure_cats = categorize_failure_reasons(df)
     failure_cats.columns = ["category", "count"]
 
-    fig = go.Figure(go.Pie(
-        labels=failure_cats["category"],
-        values=failure_cats["count"],
-        marker_colors=DEFAULT_COLORS[:len(failure_cats)],
-        textinfo="label+value+percent",
-        textposition="auto",
-    ))
+    fig = go.Figure(
+        go.Pie(
+            labels=failure_cats["category"],
+            values=failure_cats["count"],
+            marker_colors=DEFAULT_COLORS[: len(failure_cats)],
+            textinfo="label+value+percent",
+            textposition="auto",
+        )
+    )
 
     fig.update_layout(
         title="Failure Reasons (Categorized)",
@@ -207,16 +250,18 @@ def create_brand_tool_heatmap(df: pd.DataFrame) -> go.Figure:
     """Create heatmap of brand vs tool type."""
     matrix = get_brand_tool_matrix(df)
 
-    fig = go.Figure(go.Heatmap(
-        z=matrix.values,
-        x=matrix.columns.tolist(),
-        y=matrix.index.tolist(),
-        colorscale=HEATMAP_COLORS,
-        text=matrix.values,
-        texttemplate="%{text}",
-        textfont={"size": 10},
-        hoverongaps=False,
-    ))
+    fig = go.Figure(
+        go.Heatmap(
+            z=matrix.values,
+            x=matrix.columns.tolist(),
+            y=matrix.index.tolist(),
+            colorscale=HEATMAP_COLORS,
+            text=matrix.values,
+            texttemplate="%{text}",
+            textfont={"size": 10},
+            hoverongaps=False,
+        )
+    )
 
     fig.update_layout(
         title="Brand vs Tool Type Matrix",
@@ -232,23 +277,27 @@ def create_brand_tool_heatmap(df: pd.DataFrame) -> go.Figure:
 
 def create_data_table(df: pd.DataFrame) -> pd.DataFrame:
     """Prepare dataframe for display as filterable table."""
-    display_cols = [
-        "brand",
-        "tool_type",
-        "model",
-        "component",
-        "outcome",
-        "problem",
-        "failure_reason",
-        "video_url",
-    ]
-
-    table_df = df[display_cols].copy()
+    table_df = df[
+        [
+            "brand",
+            "tool_type",
+            "model",
+            "components",
+            "outcome",
+            "problem",
+            "failure_reason",
+            "video_url",
+        ]
+    ].copy()
+    # Join the components list into a readable string
+    table_df["components"] = table_df["components"].apply(
+        lambda cl: ", ".join(cl) if cl else ""
+    )
     table_df.columns = [
         "Brand",
         "Tool Type",
         "Model",
-        "Component",
+        "Components",
         "Outcome",
         "Problem",
         "Failure Reason",
